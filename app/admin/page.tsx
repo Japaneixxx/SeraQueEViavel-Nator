@@ -43,7 +43,8 @@ const campos: Campo[] = [
 
 /** Converte o valor interno (fração, ex: 0.18) para o texto do campo (ex: "18"). */
 function paraTexto(campo: Campo, valor: number): string {
-  return campo.tipo === "percentual" ? String(valor * 100) : String(valor);
+  const valorExibido = campo.tipo === "percentual" ? Math.round(valor * 100 * 100) / 100 : valor;
+  return String(valorExibido);
 }
 
 /** Converte o texto do campo de volta para o valor interno (fração para percentuais). */
