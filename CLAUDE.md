@@ -24,7 +24,19 @@ sem dependência de Next.js — pode (e deve) ser testado isoladamente.
 A cascata de deduções, nesta ordem exata, cada uma incidindo sobre uma base
 diferente:
 
-1. **Royalties** — 18% sobre o valor bruto do contrato.
+1. **Royalties** — o percentual é escalonado e configurável no painel do
+   gestor:
+   - `royaltiesPercentual` (padrão 18%) vale para contratos com valor bruto
+     até o limiar.
+   - `royaltiesPercentualAcimaDoLimiar` (padrão 15%) vale para contratos com
+     valor bruto **acima** de `royaltiesLimiarValorBruto`.
+   - `royaltiesLimiarValorBruto` (padrão R$ 20.000) define o ponto de corte.
+
+   A comparação é estrita: um contrato exatamente igual ao limiar ainda usa
+   o percentual normal. Essa regra foi adicionada depois da entrega inicial;
+   ver RELATORIO.md, "Alterações após a entrega inicial", para o porquê da
+   comparação estrita e o impacto nos casos de validação originais.
+
 2. **Impostos** — 11% sobre o valor **já deduzido dos royalties** (não sobre
    o bruto). Ou seja: `impostos = (valorBruto - royalties) * 0.11`.
 3. **Taxa da forma de pagamento** — sempre incide sobre o **valor bruto**,
@@ -41,11 +53,12 @@ diferente:
    comissão é zero — não é reduzida, é zerada.
 7. **Resultado final da unidade** = margem líquida − comissão.
 
-Todos os percentuais e valores fixos acima são os *valores padrão*
+Todos os percentuais e valores fixos acima são os _valores padrão_
 (`PARAMETROS_PADRAO` em `lib/pricing.ts`), mas são configuráveis em tempo de
-execução via o painel do gestor — ver `lib/config-store.ts`. Nunca hardcode
-esses números em outro lugar do código; sempre passe um `ParametrosFinanceiros`
-para `simular()`.
+execução via o painel do gestor — ver `lib/config-store.ts`. Isso inclui os
+dois percentuais de royalties e o limiar que decide quando o percentual cai.
+Nunca hardcode esses números em outro lugar do código; sempre passe um
+`ParametrosFinanceiros` para `simular()`.
 
 ### Inconsistência conhecida no caso de validação nº 1 do desafio
 

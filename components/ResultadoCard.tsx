@@ -16,7 +16,11 @@ export function ResultadoCard({ resultado }: { resultado: SimulacaoResultado }) 
 
       <dl className="space-y-2 text-[15px]">
         <Linha rotulo="Valor bruto do contrato" valor={resultado.valorBruto} />
-        <Linha rotulo="Royalties" valor={-resultado.royalties} />
+        <Linha
+          rotulo="Royalties"
+          valor={-resultado.royalties}
+          nota={resultado.royaltiesReduzidos ? "faixa reduzida" : undefined}
+        />
         <Linha rotulo="Impostos" valor={-resultado.impostos} />
         <Linha rotulo={rotuloFormaPagamento[resultado.formaPagamento]} valor={-resultado.taxaFormaPagamento} />
         <Linha rotulo="Custo de entrega do serviço (CSP)" valor={-resultado.csp} />

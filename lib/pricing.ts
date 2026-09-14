@@ -11,13 +11,30 @@
  * validação", para uma discrepância identificada entre o caso de validação
  * nº 1 do desafio e a regra de negócio escrita — este código segue a regra
  * escrita, não o número da tabela.
+ *
+ * Desde a entrega inicial, os royalties passaram a ser escalonados: acima
+ * de um limiar de valor bruto (padrão R$ 20.000, configurável), o
+ * percentual de royalties cai de 18% para 15% (também configurável). Ver
+ * RELATORIO.md, seção "Alterações após a entrega inicial".
  */
 
 export type FormaPagamento = "pix" | "cartao" | "boleto";
 
 export interface ParametrosFinanceiros {
-  /** Percentual de royalties sobre o valor bruto do contrato. Ex: 0.18 = 18% */
+  /** Percentual de royalties sobre o valor bruto do contrato, para contratos até o limiar. Ex: 0.18 = 18% */
   royaltiesPercentual: number;
+  /**
+   * Percentual de royalties para contratos com valor bruto ACIMA de
+   * `royaltiesLimiarValorBruto`. Ex: 0.15 = 15%.
+   */
+  royaltiesPercentualAcimaDoLimiar: number;
+  /**
+   * Valor bruto (R$) a partir do qual passa a valer
+   * `royaltiesPercentualAcimaDoLimiar` no lugar de `royaltiesPercentual`.
+   * A comparação é estrita: só se aplica a contratos ACIMA deste valor, não
+   * a contratos exatamente iguais a ele. Ex: 20000.
+   */
+  royaltiesLimiarValorBruto: number;
   /** Percentual de impostos sobre o valor já deduzido dos royalties. Ex: 0.11 = 11% */
   impostosPercentual: number;
   /** Percentual da taxa de PIX sobre o valor bruto. Ex: 0.015 = 1,5% */
@@ -39,6 +56,8 @@ export interface ParametrosFinanceiros {
 
 export const PARAMETROS_PADRAO: ParametrosFinanceiros = {
   royaltiesPercentual: 0.18,
+  royaltiesPercentualAcimaDoLimiar: 0.15,
+  royaltiesLimiarValorBruto: 20000,
   impostosPercentual: 0.11,
   taxaPixPercentual: 0.015,
   taxaCartaoPercentual: 0.14,
@@ -60,6 +79,8 @@ export interface SimulacaoResultado {
   formaPagamento: FormaPagamento;
   parcelas: number;
   royalties: number;
+  /** true quando o valor bruto ficou acima do limiar e o percentual reduzido de royalties foi aplicado. */
+  royaltiesReduzidos: boolean;
   valorAposRoyalties: number;
   impostos: number;
   taxaFormaPagamento: number;
@@ -90,8 +111,14 @@ export function simular(
     throw new EntradaInvalidaError("Número de parcelas inválido para a forma de pagamento selecionada.");
   }
 
-  // 1. Royalties — sobre o valor bruto do contrato.
-  const royalties = arredondar(valorBruto * params.royaltiesPercentual);
+  // 1. Royalties — sobre o valor bruto do contrato. Contratos com valor
+  // bruto ACIMA do limiar usam o percentual reduzido (comparação estrita:
+  // um contrato exatamente igual ao limiar ainda usa o percentual normal).
+  const royaltiesReduzidos = valorBruto > params.royaltiesLimiarValorBruto;
+  const royaltiesPercentualAplicado = royaltiesReduzidos
+    ? params.royaltiesPercentualAcimaDoLimiar
+    : params.royaltiesPercentual;
+  const royalties = arredondar(valorBruto * royaltiesPercentualAplicado);
 
   // 2. Impostos — sobre o valor já deduzido dos royalties (não sobre o bruto).
   const valorAposRoyalties = arredondar(valorBruto - royalties);
@@ -118,6 +145,7 @@ export function simular(
     formaPagamento,
     parcelas,
     royalties,
+    royaltiesReduzidos,
     valorAposRoyalties,
     impostos,
     taxaFormaPagamento,
