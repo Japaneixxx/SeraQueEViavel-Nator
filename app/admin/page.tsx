@@ -18,6 +18,16 @@ type Campo = CampoPercentual | CampoReais;
 
 const campos: Campo[] = [
   { chave: "royaltiesPercentual", rotulo: "Royalties (sobre o valor bruto)", tipo: "percentual" },
+  {
+    chave: "royaltiesPercentualAcimaDoLimiar",
+    rotulo: "Royalties acima do limiar (sobre o valor bruto)",
+    tipo: "percentual",
+  },
+  {
+    chave: "royaltiesLimiarValorBruto",
+    rotulo: "Limiar de valor bruto para reduzir royalties",
+    tipo: "reais",
+  },
   { chave: "impostosPercentual", rotulo: "Impostos (sobre o valor após royalties)", tipo: "percentual" },
   { chave: "taxaPixPercentual", rotulo: "Taxa PIX (sobre o valor bruto)", tipo: "percentual" },
   { chave: "taxaCartaoPercentual", rotulo: "Taxa de cartão parcelado (sobre o valor bruto)", tipo: "percentual" },

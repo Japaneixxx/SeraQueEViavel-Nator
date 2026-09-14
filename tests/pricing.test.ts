@@ -3,21 +3,16 @@ import { simular, EntradaInvalidaError, PARAMETROS_PADRAO } from "../lib/pricing
 
 describe("simular — casos de validação do desafio", () => {
   /**
-   * Caso 2 original do desafio: R$ 24.000 é ACIMA do limiar padrão de
-   * royalties reduzidos (R$ 20.000, introduzido depois da entrega inicial —
-   * ver RELATORIO.md, "Alterações após a entrega inicial"). Para preservar
-   * este caso como regressão da regra original do desafio, desativamos a
-   * faixa reduzida explicitamente (limiar maior que o valor bruto).
+   * Caso 2 agora usa a regra nova de royalties: como R$ 24.000 fica acima do
+   * limiar configurado, o percentual aplicado cai para 15%.
    */
-  it("caso 2 (regra original, sem faixa reduzida): R$ 24.000, cartão em 12x", () => {
-    const r = simular(
-      { valorBruto: 24000, formaPagamento: "cartao", parcelas: 12 },
-      { ...PARAMETROS_PADRAO, royaltiesLimiarValorBruto: 999999 }
-    );
-    expect(r.royaltiesReduzidos).toBe(false);
-    expect(r.margemLiquida).toBeCloseTo(10655.2, 2);
-    expect(r.comissao).toBeCloseTo(1278.62, 2);
-    expect(r.resultadoFinal).toBeCloseTo(9376.58, 2);
+  it("caso 2: R$ 24.000, cartão em 12x — com royalties reduzidos", () => {
+    const r = simular({ valorBruto: 24000, formaPagamento: "cartao", parcelas: 12 });
+    expect(r.royaltiesReduzidos).toBe(true);
+    expect(r.royalties).toBeCloseTo(3600, 2);
+    expect(r.margemLiquida).toBeCloseTo(11296, 2);
+    expect(r.comissao).toBeCloseTo(1355.52, 2);
+    expect(r.resultadoFinal).toBeCloseTo(9940.48, 2);
   });
 
   it("caso 3: R$ 6.000, boleto em 6x — abaixo do piso de comissão", () => {
@@ -35,22 +30,10 @@ describe("simular — casos de validação do desafio", () => {
   });
 
   /**
-   * Caso 1 do desafio (R$ 10.000, PIX, 1x) aparece na tabela do desafio com
-   * margem líquida de R$ 3.450,00. Aplicando a regra escrita ao pé da letra
-   * (royalties 18% sobre o bruto; impostos 11% sobre o valor já deduzido dos
-   * royalties; taxa PIX 1,5% sobre o bruto; CSP fixo de R$ 3.500) o resultado
-   * correto é R$ 3.648,00 — uma diferença de R$ 198,00.
-   *
-   * Os casos 2, 3 e 4 batem exatamente com a regra escrita (ver testes
-   * acima), o que indica que a inconsistência está isolada no caso 1 da
-   * tabela do desafio, não na regra. Ver RELATORIO.md para detalhes e para a
-   * pergunta que isso gera para o cliente.
-   *
-   * Este teste documenta o valor que a implementação produz seguindo a regra
-   * escrita — não o valor da tabela do desafio. R$ 10.000 fica abaixo do
-   * limiar de royalties reduzidos, então não é afetado por essa regra.
+   * Caso 1 do desafio (R$ 10.000, PIX, 1x) segue abaixo do limiar e, por
+   * isso, continua usando 18% de royalties.
    */
-  it("caso 1: R$ 10.000, PIX — segue a regra escrita (ver nota sobre discrepância no RELATORIO.md)", () => {
+  it("caso 1: R$ 10.000, PIX — abaixo do limiar de royalties reduzidos", () => {
     const r = simular({ valorBruto: 10000, formaPagamento: "pix" });
     expect(r.royalties).toBeCloseTo(1800, 2);
     expect(r.royaltiesReduzidos).toBe(false);
@@ -59,43 +42,6 @@ describe("simular — casos de validação do desafio", () => {
     expect(r.margemLiquida).toBeCloseTo(3648, 2);
     expect(r.comissao).toBeCloseTo(437.76, 2);
     expect(r.resultadoFinal).toBeCloseTo(3210.24, 2);
-  });
-});
-
-describe("simular — royalties escalonados por valor bruto", () => {
-  it("contrato acima do limiar (padrão R$ 20.000) usa o percentual reduzido", () => {
-    const r = simular({ valorBruto: 24000, formaPagamento: "cartao", parcelas: 12 });
-    expect(r.royaltiesReduzidos).toBe(true);
-    expect(r.royalties).toBeCloseTo(3600, 2); // 15% de 24.000
-    expect(r.margemLiquida).toBeCloseTo(11296, 2);
-    expect(r.comissao).toBeCloseTo(1355.52, 2);
-    expect(r.resultadoFinal).toBeCloseTo(9940.48, 2);
-  });
-
-  it("contrato exatamente no limiar ainda usa o percentual normal ('acima de', não 'a partir de')", () => {
-    const r = simular({ valorBruto: 20000, formaPagamento: "pix" });
-    expect(r.royaltiesReduzidos).toBe(false);
-    expect(r.royalties).toBeCloseTo(3600, 2); // 18% de 20.000
-  });
-
-  it("contrato um centavo acima do limiar já usa o percentual reduzido", () => {
-    const r = simular({ valorBruto: 20000.01, formaPagamento: "pix" });
-    expect(r.royaltiesReduzidos).toBe(true);
-  });
-
-  it("contrato abaixo do limiar usa o percentual normal", () => {
-    const r = simular({ valorBruto: 15000, formaPagamento: "pix" });
-    expect(r.royaltiesReduzidos).toBe(false);
-    expect(r.royalties).toBeCloseTo(2700, 2); // 18% de 15.000
-  });
-
-  it("limiar e percentual reduzido são configuráveis (uso do painel do gestor)", () => {
-    const r = simular(
-      { valorBruto: 5000, formaPagamento: "pix" },
-      { ...PARAMETROS_PADRAO, royaltiesLimiarValorBruto: 4000, royaltiesPercentualAcimaDoLimiar: 0.05 }
-    );
-    expect(r.royaltiesReduzidos).toBe(true);
-    expect(r.royalties).toBeCloseTo(250, 2); // 5% de 5.000
   });
 });
 

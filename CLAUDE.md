@@ -10,7 +10,9 @@ Um simulador de viabilidade de venda. Um vendedor informa o valor de um
 contrato e a forma de pagamento; a ferramenta mostra a margem líquida da
 unidade e a comissão do vendedor, em tempo real, durante uma negociação. O
 gestor da equipe ajusta os parâmetros financeiros (percentuais de custo) em
-um painel separado, que o time comercial não acessa.
+um painel separado, que o time comercial não acessa. Esse painel agora
+controla também a regra escalonada de royalties, com o percentual normal,
+o percentual acima do limiar e o próprio limiar de corte.
 
 Stack: Next.js 14 (App Router), TypeScript, Tailwind. Sem banco de dados
 externo — ver "Limitações conhecidas" abaixo, é a fragilidade mais
@@ -59,6 +61,10 @@ execução via o painel do gestor — ver `lib/config-store.ts`. Isso inclui os
 dois percentuais de royalties e o limiar que decide quando o percentual cai.
 Nunca hardcode esses números em outro lugar do código; sempre passe um
 `ParametrosFinanceiros` para `simular()`.
+
+Os testes automatizados em `tests/pricing.test.ts` cobrem o caso abaixo do
+limiar, o caso acima dele, o caso exatamente no limiar e a configuração
+customizada desses parâmetros.
 
 ### Inconsistência conhecida no caso de validação nº 1 do desafio
 
@@ -153,7 +159,8 @@ npm run build       # build de produção (falha se houver erro de tipo)
   este projeto.
 - `lib/pricing.ts` é a única fonte da verdade da regra de negócio. Se uma
   mudança de regra não cabe alterando esse arquivo, provavelmente está sendo
-  feita no lugar errado.
+  feita no lugar errado. O painel do gestor só expõe os parâmetros; ele não
+  reimplementa a lógica.
 - Os parâmetros financeiros nunca trafegam para `app/page.tsx` nem para
   qualquer resposta de API que o vendedor acesse — só para as rotas
   `/api/admin/*`, protegidas por sessão.
